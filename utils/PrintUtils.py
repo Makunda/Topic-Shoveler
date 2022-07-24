@@ -16,7 +16,23 @@ class PrintColors(Enum):
     UNDERLINE = '\033[4m'
 
 
+class MessageType(Enum):
+    INFO = "INFO",
+    ERROR = "ERROR",
+    WARNING = "WARNING"
+
+
 class PrintUtils:
+    __module_name = ""
+
+    @staticmethod
+    def set_prefix(prefix: str):
+        """
+        Set a global prefix
+        :param prefix: Prefix to append at the beginning of the lines
+        :return:
+        """
+        PrintUtils.__module_name = prefix
 
     @staticmethod
     def error(message: str):
@@ -25,7 +41,7 @@ class PrintUtils:
         :param message:
         :return:
         """
-        PrintUtils.print_color(message, PrintColors.WARNING)
+        PrintUtils.print_color(message, MessageType.ERROR, PrintColors.WARNING)
 
     @staticmethod
     def info(message: str):
@@ -34,14 +50,17 @@ class PrintUtils:
         :param message:
         :return:
         """
-        PrintUtils.print_color(message, PrintColors.OKCYAN)
+        PrintUtils.print_color(message, MessageType.INFO, PrintColors.OKCYAN)
 
     @staticmethod
-    def print_color(message: str, color: PrintColors):
+    def print_color(message: str, type: MessageType, color: PrintColors):
         """
         Print a message with  a defined color
+        :param type: Type of the message to add
         :param message:  Message to print
         :param color: Color of the text
         :return:
         """
-        print(f"{color.value}{message}{PrintColors.ENDC.value}")
+        module_name = f'{PrintUtils.__module_name} : ' if PrintUtils.__module_name else ''
+        message_type = f'{type.value[0]} : '
+        print(f"{message_type}{module_name}{color.value}{message}{PrintColors.ENDC.value}")

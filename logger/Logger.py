@@ -1,55 +1,10 @@
-import copy
 import logging
 import os
 from logging.handlers import RotatingFileHandler
-from flask.logging import default_handler
 
-
-from logger.LoggerUtils import LoggerUtils
 from metaclass.SingletonMeta import SingletonMeta
-from secrets.Secrets import LOG_FOLDER, LOG_LEVEL, MODULE_NAME
+from secrets.Secrets import LOG_FOLDER, LOG_LEVEL
 from utils.FolderUtils import FolderUtils
-
-"""
-   Initialize logging and displays information
-   :return: None
-   """
-log_folder = str(LOG_FOLDER)
-log_level = str(LOG_LEVEL)
-
-# Create log folder if needed
-log_path = os.path.join(log_folder)
-FolderUtils.merge_folder(log_path)
-
-# Change the permission over the log folder
-os.chmod(log_path, 0o777)
-
-# Print log files and level
-message = "Logs will be saved to {0}. Log level is: {1}".format(log_folder, log_level)
-logging.debug(message)
-
-timestamp = ""
-
-# define logs files and folders
-INFO_FILE = f"{MODULE_NAME}_info_{timestamp}.log"
-INFO_FILE = os.path.join(log_folder, INFO_FILE)
-
-
-# Info File
-INFO_LOG_HANDLER = RotatingFileHandler(INFO_FILE, maxBytes=1048576, backupCount=5)
-INFO_LOG_HANDLER.setFormatter(
-    logging.Formatter(f'%(asctime)s %(levelname)s : {MODULE_NAME} : %(message)s ' '[in %(pathname)s:%(lineno)d]'))
-INFO_LOG_HANDLER.setLevel(logging.INFO)
-
-
-# Error File
-ERROR_FILE = f"{MODULE_NAME}_errors_{timestamp}.log"
-ERROR_FILE = os.path.join(log_folder, ERROR_FILE)
-
-ERROR_LOG_HANDLER = RotatingFileHandler(ERROR_FILE, maxBytes=1048576, backupCount=5)
-ERROR_LOG_HANDLER.setFormatter(
-    logging.Formatter(f'%(asctime)s %(levelname)s : {MODULE_NAME} : %(message)s ' '[in %(pathname)s:%(lineno)d]'))
-ERROR_LOG_HANDLER.setLevel(logging.ERROR)
 
 
 class Logger(metaclass=SingletonMeta):
@@ -57,29 +12,63 @@ class Logger(metaclass=SingletonMeta):
     Singleton class in charge of wrapping the default logger
     """
 
-    @staticmethod
-    def get_log_folder_path() -> str:
-        """
-        Get the path to the log files
-        :return:
-        """
-        return copy.deepcopy(log_folder)
+    _log_folder = ""
+    _log_level = ""
+    _log_path = ""
 
-    @staticmethod
-    def get(name: str, level: logging = None) -> logging.Logger:
+    def get_log_path(self):
+        return self._log_path
+
+    def __init__(self):
+        """
+        Initialize logging and displays information
+        :return: None
+        """
+        self._log_folder = str(LOG_FOLDER)
+        self._log_level = str(LOG_LEVEL)
+
+        # Create log folder if needed
+        self._log_path = os.path.join(self._log_folder)
+        FolderUtils.merge_folder(self._log_path)
+
+        os.chmod(self._log_path, 0o777)
+
+        # Print log files and level
+        message = "Logs will be saved to {0}. Log level is: {1}".format(self._log_folder, self._log_level)
+        logging.debug(message)
+
+        timestamp = ""
+
+        # define logs files and folders
+        info_file = "BitBulket_info" + timestamp + ".log"
+        self.__log_file = os.path.join(self._log_folder, info_file)
+
+        error_file = "BitBulket_error" + timestamp + ".log"
+        self.__error_file = os.path.join(self._log_folder, error_file)
+
+        self.__log_handler = RotatingFileHandler(self.__log_file, maxBytes=1048576, backupCount=5)
+        self.__log_handler.setFormatter(
+            logging.Formatter('%(asctime)s %(levelname)s : %(message)s ' '[in %(pathname)s:%(lineno)d]'))
+
+    def get_logging_path(self) -> str:
+        """
+        Get the logging folder path
+        :return: The path of the folder
+        """
+        return str(self._log_folder)
+
+    def get(self, name) -> logging.Logger:
         """
         Get a logger with a prefixed name
-        :param level: Log level for this logger. By default the logger will use INFO
         :param name:  Name of the logger
-        :return: Wrapped logger class
+        :return: The logger Wrapped
         """
-        local_level = level
-        if local_level is None:
-            local_level = LoggerUtils.get_default_level()
-
         logger = logging.getLogger(name)
-        logger.addHandler(INFO_LOG_HANDLER)
-        logger.addHandler(ERROR_LOG_HANDLER)
-        logger.addHandler(default_handler)
-        logger.setLevel(local_level)
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(self.__log_handler)
         return logger
+
+    @staticmethod
+    def get_logger(name):
+        logger = Logger()
+        return logger.get(name)
